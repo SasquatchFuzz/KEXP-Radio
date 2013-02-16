@@ -73,17 +73,18 @@
     if (object == playerItem && [keyPath isEqualToString:@"status"]) {
         if(playerItem.status == AVPlayerStatusReadyToPlay)
         {
-            NSLog(@"Ready");
+            //NSLog(@"Ready");
             [[statusMenu itemAtIndex:ePlayPause] setEnabled:YES];
             [[statusMenu itemAtIndex:ePlayPause] setTitle:@"Play"];
             [playerItem removeObserver:self forKeyPath:@"status"];
         }
         else if(playerItem.status == AVPlayerStatusFailed) {
-            NSLog(@"%@" , self->playerItem.error.description);
-            NSLog(@"PlayerStatusFailed");
+            //NSLog(@"%@" , self->playerItem.error.description);
+            //NSLog(@"PlayerStatusFailed");
         }
-        else if(playerItem.status == AVPlayerStatusUnknown)
-            NSLog(@"unknown");
+        else if(playerItem.status == AVPlayerStatusUnknown){
+            //NSLog(@"unknown");
+        }
     }
 
     [self updateStatusIcon];
@@ -93,7 +94,7 @@
     
     if([theAVPlayer rate] == 0.0)
     {
-        NSLog(@"Play");
+        //NSLog(@"Play");
         [theAVPlayer play];
         [[statusMenu itemAtIndex:eStop] setHidden:FALSE];
         [[statusMenu itemAtIndex:ePlayPause] setTitle:@"Pause"];
@@ -101,7 +102,7 @@
     }
     else
     {
-        NSLog(@"Pause");
+        //NSLog(@"Pause");
         [theAVPlayer pause];
         [[statusMenu itemAtIndex:ePlayPause] setTitle:@"Resume"];
         [self updateStatusIcon];
@@ -109,14 +110,14 @@
 }
 
 -(IBAction)stopPlayback:(id)sender {
-    NSLog(@"Stop");
+    //NSLog(@"Stop");
     [theAVPlayer pause];
     theAVPlayer=nil;
     [self initStream];
 };
 
 -(IBAction)donate:(id)sender{
-    NSLog(@"Donate");
+    //NSLog(@"Donate");
     
     NSURL* donateUrl = [NSURL URLWithString: @"http://www.kexp.org/donate"];
     NSWorkspace* ws = [NSWorkspace sharedWorkspace];
@@ -125,6 +126,6 @@
 }
 
 -(IBAction)preferences:(id)sender{
-    NSLog(@"Preferences");
+    //NSLog(@"Preferences");
 }
 @end
