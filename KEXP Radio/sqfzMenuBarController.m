@@ -25,8 +25,10 @@
 //  MP3 (128k): http://live-mp3-128.kexp.org:8000/
 //  http://kexp-mp3-2.cac.washington.edu:8000/
 
+#import <sys/socket.h>
+#import <netinet/in.h>
+#import <SystemConfiguration/SystemConfiguration.h>
 #import "sqfzMenuBarController.h"
-
 
 @implementation sqfzMenuBarController
 - (void) awakeFromNib{
@@ -35,7 +37,16 @@
     statusItem = [[NSStatusBar systemStatusBar] statusItemWithLength:NSSquareStatusItemLength];
     
     // Init stream and UI states
-    [self initStream];
+    if([self hasConnectivity])
+        [self initStream];
+    else
+    {
+        [[statusMenu itemAtIndex:ePlayPause] setTitle:@"No Internet Connection"];
+        [[statusMenu itemAtIndex:ePlayPause] setEnabled:NO];
+        [[statusMenu itemAtIndex:eDonate] setEnabled:NO];
+        [[statusMenu itemAtIndex:eStop] setHidden:YES];
+        [self updateStatusIcon];
+    }
     
     //Tells the NSStatusItem what menu to load
     [statusItem setMenu:statusMenu];
@@ -52,8 +63,89 @@
     // Initialize the stream
     NSURL *url = [[NSURL alloc] initWithString:@"http://live-mp3-128.kexp.org:8000/"];
     playerItem = [AVPlayerItem playerItemWithURL:url];
+    [playerItem addObserver:self forKeyPath:@"playbackBufferEmpty" options:NSKeyValueObservingOptionNew context:nil];
     [playerItem addObserver:self forKeyPath:@"status" options:0 context:nil];
     theAVPlayer = [AVPlayer playerWithPlayerItem:self->playerItem];
+}
+
+-(BOOL)hasConnectivity {
+    struct sockaddr_in zeroAddress;
+    bzero(&zeroAddress, sizeof(zeroAddress));
+    zeroAddress.sin_len = sizeof(zeroAddress);
+    zeroAddress.sin_family = AF_INET;
+    
+    SCNetworkReachabilityRef reachability = SCNetworkReachabilityCreateWithAddress(kCFAllocatorDefault, (const struct sockaddr*)&zeroAddress);
+    if(reachability != NULL) {
+        //NetworkStatus retVal = NotReachable;
+        SCNetworkReachabilityFlags flags;
+        if (SCNetworkReachabilityGetFlags(reachability, &flags)) {
+            if ((flags & kSCNetworkReachabilityFlagsReachable) == 0)
+            {
+                // if target host is not reachable
+                return NO;
+            }
+            
+            if ((flags & kSCNetworkReachabilityFlagsConnectionRequired) == 0)
+            {
+                // if target host is reachable and no connection is required
+                //  then we'll assume (for now) that your on Wi-Fi
+                return YES;
+            }
+            
+            
+            if ((((flags & kSCNetworkReachabilityFlagsConnectionOnDemand ) != 0) ||
+                 (flags & kSCNetworkReachabilityFlagsConnectionOnTraffic) != 0))
+            {
+                // ... and the connection is on-demand (or on-traffic) if the
+                //     calling application is using the CFSocketStream or higher APIs
+                
+                if ((flags & kSCNetworkReachabilityFlagsInterventionRequired) == 0)
+                {
+                    // ... and no [user] intervention is needed
+                    return YES;
+                }
+            }
+            
+            if ((flags & kSCNetworkReachabilityFlagsIsDirect) == kSCNetworkReachabilityFlagsIsDirect)
+            {
+                // ... but WWAN connections are OK if the calling application
+                //     is using the CFNetwork (CFSocketStream?) APIs.
+                return YES;
+            }
+        }
+    }
+    
+    return NO;
+}
+
+
+- (void)menuNeedsUpdate:(NSMenu *)menu {
+
+    if([self hasConnectivity])
+    {
+        if(theAVPlayer==Nil)
+        {
+            [self initStream];
+        }
+        
+        // Make sure donation option is enabled
+        [[statusMenu itemAtIndex:eDonate] setEnabled:YES];
+    }
+    else
+    {
+        // Make sure the players stopped
+        [theAVPlayer pause];
+        theAVPlayer=nil;
+        
+        //and then update the menu items
+        [[statusMenu itemAtIndex:ePlayPause] setTitle:@"No Internet Connection"];
+        [[statusMenu itemAtIndex:ePlayPause] setEnabled:NO];
+        [[statusMenu itemAtIndex:eDonate] setEnabled:NO];
+        [[statusMenu itemAtIndex:eStop] setHidden:YES];
+    }
+    
+    //update the icon
+    [self updateStatusIcon];
 }
 
 -(void)updateStatusIcon{
@@ -94,7 +186,6 @@
     
     if([theAVPlayer rate] == 0.0)
     {
-        //NSLog(@"Play");
         [theAVPlayer play];
         [[statusMenu itemAtIndex:eStop] setHidden:FALSE];
         [[statusMenu itemAtIndex:ePlayPause] setTitle:@"Pause"];
@@ -102,7 +193,6 @@
     }
     else
     {
-        //NSLog(@"Pause");
         [theAVPlayer pause];
         [[statusMenu itemAtIndex:ePlayPause] setTitle:@"Resume"];
         [self updateStatusIcon];
@@ -110,15 +200,12 @@
 }
 
 -(IBAction)stopPlayback:(id)sender {
-    //NSLog(@"Stop");
     [theAVPlayer pause];
     theAVPlayer=nil;
     [self initStream];
 };
 
 -(IBAction)donate:(id)sender{
-    //NSLog(@"Donate");
-    
     NSURL* donateUrl = [NSURL URLWithString: @"http://www.kexp.org/donate"];
     NSWorkspace* ws = [NSWorkspace sharedWorkspace];
     
