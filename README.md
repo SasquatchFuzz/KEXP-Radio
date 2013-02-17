@@ -1,7 +1,7 @@
 KEXP-Radio
 ==========
 
-KEXP Radio is an OS X (Mountain Lion) status bar utility for streaming KEXP. I was tired of having to use iTunes to the listen to the stream and wanted a simple utility to use at work. I hope to add the ability to see the current artist/track, tag favorites (and view/manage), and add more controls (independent volume, start stream on startup, etc...) but for now it's just a simple stream player.
+KEXP Radio is an OS X (Mountain Lion/10.8) status bar utility for streaming KEXP. I was tired of having to use iTunes to the listen to the stream and wanted a simple utility to use at work. I hope to add the ability to see the current artist/track, tag favorites (and view/manage), and add more controls (independent volume, start stream on startup, etc...) but for now it's just a simple stream player.
 
 I'm not affiliated with KEXP but just a passionate listner.  For more info about KEXP see below and if you like what you hear be sure to donate to them.
 
