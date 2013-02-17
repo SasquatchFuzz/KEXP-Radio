@@ -28,13 +28,16 @@
 typedef enum {
     ePlayPause=0,
     eStop,
+    sSep1,
     eDonate,
+    eSep2,
     ePreferences,
+    eSep3,
     eQuit,
 } MenuItemType;
 
-@interface sqfzMenuBarController : NSObject {
-    /* Our outlets which allow us to access the interface */
+@interface sqfzMenuBarController : NSObject <NSMenuDelegate> {
+    
     IBOutlet NSMenu *statusMenu;
 
     NSStatusItem *statusItem;
@@ -43,8 +46,6 @@ typedef enum {
     boolean_t bStreamReady;
 }
 
--(void)initStream;
--(void)updateStatusIcon;
 -(IBAction)playPause:(id)sender;
 -(IBAction)stopPlayback:(id)sender;
 -(IBAction)donate:(id)sender;
