@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0E77D65F16D091A3005ACA5A /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0E77D65E16D091A3005ACA5A /* SystemConfiguration.framework */; };
 		0E94275716C6ED4B00FC39EF /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0E94275616C6ED4B00FC39EF /* Cocoa.framework */; };
 		0E94276116C6ED4B00FC39EF /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0E94275F16C6ED4B00FC39EF /* InfoPlist.strings */; };
 		0E94276316C6ED4B00FC39EF /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E94276216C6ED4B00FC39EF /* main.m */; };
@@ -24,6 +25,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0E77D65E16D091A3005ACA5A /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
 		0E94275316C6ED4B00FC39EF /* KEXP Radio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "KEXP Radio.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0E94275616C6ED4B00FC39EF /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		0E94275916C6ED4B00FC39EF /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -52,6 +54,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0E77D65F16D091A3005ACA5A /* SystemConfiguration.framework in Frameworks */,
 				0EABD58116C825C100BD0094 /* AVFoundation.framework in Frameworks */,
 				0EABD57D16C8257B00BD0094 /* CFNetwork.framework in Frameworks */,
 				0E94275716C6ED4B00FC39EF /* Cocoa.framework in Frameworks */,
@@ -64,6 +67,7 @@
 		0E94274A16C6ED4B00FC39EF = {
 			isa = PBXGroup;
 			children = (
+				0E77D65E16D091A3005ACA5A /* SystemConfiguration.framework */,
 				0EBABD4216D013780027B9DF /* license.txt */,
 				0EBABD4016D00DA30027B9DF /* KEXPRadio.icns */,
 				0EC941D616C7667600196B79 /* kexpOff.png */,
