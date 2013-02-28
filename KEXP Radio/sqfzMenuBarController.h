@@ -36,15 +36,25 @@ typedef enum {
     eQuit,
 } MenuItemType;
 
+typedef enum {
+    eStreamUninitialized=0,
+    eStreamReady,
+    eStreamBegan
+} StreamStateType;
+
 @interface sqfzMenuBarController : NSObject <NSMenuDelegate> {
     
     IBOutlet NSMenu *statusMenu;
-
     NSStatusItem *statusItem;
     AVPlayerItem *playerItem;
     AVPlayer *theAVPlayer;
-    boolean_t bStreamReady;
+    StreamStateType streamState;
 }
+
+-(void)initStream;
+-(BOOL)hasConnectivity;
+-(void)updateStatusIcon;
+-(void)updateMenuItems;
 
 -(IBAction)playPause:(id)sender;
 -(IBAction)stopPlayback:(id)sender;

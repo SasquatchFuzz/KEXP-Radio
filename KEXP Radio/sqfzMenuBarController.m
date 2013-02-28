@@ -30,43 +30,89 @@
 #import <SystemConfiguration/SystemConfiguration.h>
 #import "sqfzMenuBarController.h"
 
+
 @implementation sqfzMenuBarController
+
 - (void) awakeFromNib{
     
-    //Create the NSStatusBar and set its length
     statusItem = [[NSStatusBar systemStatusBar] statusItemWithLength:NSSquareStatusItemLength];
     
-    // Init stream and UI states
+    // init stream and UI elements in statusMenu
     if([self hasConnectivity])
-        [self initStream];
-    else
     {
-        [[statusMenu itemAtIndex:ePlayPause] setTitle:@"No Internet Connection"];
-        [[statusMenu itemAtIndex:ePlayPause] setEnabled:NO];
-        [[statusMenu itemAtIndex:eDonate] setEnabled:NO];
-        [[statusMenu itemAtIndex:eStop] setHidden:YES];
-        [self updateStatusIcon];
+        [self initStream];
     }
+    [self updateStatusIcon];
+    [self updateMenuItems];
     
-    //Tells the NSStatusItem what menu to load
     [statusItem setMenu:statusMenu];
     [statusItem setHighlightMode:YES];
 }
 
--(void) initStream{
-    // Mark the stream not ready and disable the UI
-    [self updateStatusIcon];
-    [[statusMenu itemAtIndex:ePlayPause] setTitle:@"Initializing stream..."];
-    [[statusMenu itemAtIndex:ePlayPause] setEnabled:NO];
-    [[statusMenu itemAtIndex:eStop] setHidden:YES];
+- (void)menuNeedsUpdate:(NSMenu *)menu {
     
-    // Initialize the stream
-    NSURL *url = [[NSURL alloc] initWithString:@"http://live-mp3-128.kexp.org:8000/"];
-    playerItem = [AVPlayerItem playerItemWithURL:url];
+    // Checks to make sure connectivity hasn't changed when the menu is shown.
+    // This will be done differently(improved) in the future but works for now...
+    if([self hasConnectivity])
+    {
+        // If we have connectivity but theAVPlayer is nil we lost connectivity
+        // and it's been restored
+        if(theAVPlayer==nil)
+        {
+            [self initStream];
+        }
+    }
+    else
+    {
+        // There's no connectivity now - Make sure the players removed
+        [theAVPlayer pause];
+        theAVPlayer=nil;
+    }
+    
+    [self updateStatusIcon];
+    [self updateMenuItems];
+}
+
+#pragma mark Stream
+
+-(void)initStream{
+    streamState=eStreamUninitialized;
+    playerItem = [AVPlayerItem playerItemWithURL:[[NSURL alloc] initWithString:@"http://live-mp3-128.kexp.org:8000/"]];
     [playerItem addObserver:self forKeyPath:@"playbackBufferEmpty" options:NSKeyValueObservingOptionNew context:nil];
     [playerItem addObserver:self forKeyPath:@"status" options:0 context:nil];
     theAVPlayer = [AVPlayer playerWithPlayerItem:self->playerItem];
 }
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object
+                        change:(NSDictionary *)change context:(void *)context {
+    if (object == playerItem && [keyPath isEqualToString:@"status"])
+    {
+        if(playerItem.status == AVPlayerStatusReadyToPlay)
+        {
+            streamState=eStreamReady;
+            // NSLog(@"Ready");
+        }
+        else if(playerItem.status == AVPlayerStatusFailed) {
+            streamState=eStreamUninitialized;
+            // NSLog(@"%@" , self->playerItem.error.description);
+            // NSLog(@"PlayerStatusFailed");
+        }
+        else if(playerItem.status == AVPlayerStatusUnknown){
+            streamState=eStreamUninitialized;
+            // NSLog(@"unknown");
+        }
+    }
+    if (object == playerItem && [keyPath isEqualToString:@"playbackBufferEmpty"])
+    {
+        streamState=eStreamUninitialized;
+        // NSLog(@"playbackBufferEmpty");
+    }
+    
+    [self updateStatusIcon];
+    [self updateMenuItems];
+}
+
+#pragma mark Connectivity
 
 -(BOOL)hasConnectivity {
     struct sockaddr_in zeroAddress;
@@ -75,10 +121,12 @@
     zeroAddress.sin_family = AF_INET;
     
     SCNetworkReachabilityRef reachability = SCNetworkReachabilityCreateWithAddress(kCFAllocatorDefault, (const struct sockaddr*)&zeroAddress);
-    if(reachability != NULL) {
+    if(reachability != NULL)
+    {
         //NetworkStatus retVal = NotReachable;
         SCNetworkReachabilityFlags flags;
-        if (SCNetworkReachabilityGetFlags(reachability, &flags)) {
+        if (SCNetworkReachabilityGetFlags(reachability, &flags))
+        {
             if ((flags & kSCNetworkReachabilityFlagsReachable) == 0)
             {
                 // if target host is not reachable
@@ -113,43 +161,15 @@
                 return YES;
             }
         }
-    }
-    
+    }    
     return NO;
 }
 
-
-- (void)menuNeedsUpdate:(NSMenu *)menu {
-
-    if([self hasConnectivity])
-    {
-        if(theAVPlayer==Nil)
-        {
-            [self initStream];
-        }
-        
-        // Make sure donation option is enabled
-        [[statusMenu itemAtIndex:eDonate] setEnabled:YES];
-    }
-    else
-    {
-        // Make sure the players stopped
-        [theAVPlayer pause];
-        theAVPlayer=nil;
-        
-        //and then update the menu items
-        [[statusMenu itemAtIndex:ePlayPause] setTitle:@"No Internet Connection"];
-        [[statusMenu itemAtIndex:ePlayPause] setEnabled:NO];
-        [[statusMenu itemAtIndex:eDonate] setEnabled:NO];
-        [[statusMenu itemAtIndex:eStop] setHidden:YES];
-    }
-    
-    //update the icon
-    [self updateStatusIcon];
-}
+#pragma mark User Interface
 
 -(void)updateStatusIcon{
-    if([theAVPlayer rate] == 1.0)
+    
+    if( [theAVPlayer rate] == 1.0)
     {
         [statusItem setImage:[NSImage imageNamed:@"kexpOn"]];
         [statusItem setAlternateImage:[NSImage imageNamed:@"kexpOn"]];
@@ -160,56 +180,75 @@
     }
 }
 
-- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object
-                        change:(NSDictionary *)change context:(void *)context {
-    if (object == playerItem && [keyPath isEqualToString:@"status"]) {
-        if(playerItem.status == AVPlayerStatusReadyToPlay)
+-(void)updateMenuItems{
+
+    if([self hasConnectivity])
+    {
+        if(streamState==eStreamUninitialized) {
+            [[statusMenu itemAtIndex:ePlayPause] setTitle:@"Initializing stream..."];
+            [[statusMenu itemAtIndex:ePlayPause] setEnabled:NO];
+            [[statusMenu itemAtIndex:eStop] setHidden:YES];
+        }
+        else if(streamState==eStreamReady)
         {
-            //NSLog(@"Ready");
             [[statusMenu itemAtIndex:ePlayPause] setEnabled:YES];
             [[statusMenu itemAtIndex:ePlayPause] setTitle:@"Play"];
-            [playerItem removeObserver:self forKeyPath:@"status"];
         }
-        else if(playerItem.status == AVPlayerStatusFailed) {
-            //NSLog(@"%@" , self->playerItem.error.description);
-            //NSLog(@"PlayerStatusFailed");
+        else if([theAVPlayer rate] == 1.0)
+        {
+            // We're playing...
+            [[statusMenu itemAtIndex:ePlayPause] setTitle:@"Pause"];
+            [[statusMenu itemAtIndex:eStop] setHidden:FALSE];
         }
-        else if(playerItem.status == AVPlayerStatusUnknown){
-            //NSLog(@"unknown");
+        else
+        {
+            // The stream's already started but is paused
+            [[statusMenu itemAtIndex:ePlayPause] setEnabled:YES];
+            [[statusMenu itemAtIndex:ePlayPause] setTitle:@"Resume"];
         }
+        // Make sure donation option is enabled
+        [[statusMenu itemAtIndex:eDonate] setEnabled:YES];
     }
-
-    [self updateStatusIcon];
+    else
+    {
+        [[statusMenu itemAtIndex:ePlayPause] setTitle:@"No Internet Connection"];
+        [[statusMenu itemAtIndex:ePlayPause] setEnabled:NO];
+        [[statusMenu itemAtIndex:eStop] setHidden:YES];
+        [[statusMenu itemAtIndex:eDonate] setEnabled:NO];
+    }
 }
+
+#pragma mark User Input Handlers
 
 -(IBAction)playPause:(id)sender{
     
-    if([theAVPlayer rate] == 0.0)
+    if([theAVPlayer rate] == 0.0) // Are we stopped?
     {
         [theAVPlayer play];
-        [[statusMenu itemAtIndex:eStop] setHidden:FALSE];
-        [[statusMenu itemAtIndex:ePlayPause] setTitle:@"Pause"];
-        [self updateStatusIcon];
     }
     else
     {
         [theAVPlayer pause];
-        [[statusMenu itemAtIndex:ePlayPause] setTitle:@"Resume"];
-        [self updateStatusIcon];
     }
+    
+    streamState=eStreamBegan;
+    [self updateStatusIcon];
+    [self updateMenuItems];
 }
 
 -(IBAction)stopPlayback:(id)sender {
+    // Stop and re-init stream
     [theAVPlayer pause];
     theAVPlayer=nil;
     [self initStream];
+    
+    [self updateStatusIcon];
+    [self updateMenuItems];
 };
 
 -(IBAction)donate:(id)sender{
-    NSURL* donateUrl = [NSURL URLWithString: @"http://www.kexp.org/donate"];
     NSWorkspace* ws = [NSWorkspace sharedWorkspace];
-    
-    [ws openURL:donateUrl];
+    [ws openURL:[NSURL URLWithString: @"http://www.kexp.org/donate"]];
 }
 
 -(IBAction)preferences:(id)sender{
