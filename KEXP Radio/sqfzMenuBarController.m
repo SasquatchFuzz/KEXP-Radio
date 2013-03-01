@@ -56,7 +56,7 @@
     if([self hasConnectivity])
     {
         // If we have connectivity but theAVPlayer is nil we lost connectivity
-        // and it's been restored
+        // and it needs been restored
         if(theAVPlayer==nil)
         {
             [self initStream];
@@ -64,7 +64,7 @@
     }
     else
     {
-        // There's no connectivity now - Make sure the players removed
+        // There's no connectivity now - Make sure the player's stopped/removed
         [theAVPlayer pause];
         theAVPlayer=nil;
     }
@@ -169,7 +169,7 @@
 
 -(void)updateStatusIcon{
     
-    if( [theAVPlayer rate] == 1.0)
+    if( [theAVPlayer rate] == 1.0) // Are we playing?
     {
         [statusItem setImage:[NSImage imageNamed:@"kexpOn"]];
         [statusItem setAlternateImage:[NSImage imageNamed:@"kexpOn"]];
@@ -198,7 +198,7 @@
         {
             // We're playing...
             [[statusMenu itemAtIndex:ePlayPause] setTitle:@"Pause"];
-            [[statusMenu itemAtIndex:eStop] setHidden:FALSE];
+            [[statusMenu itemAtIndex:eStop] setHidden:NO];
         }
         else
         {
@@ -211,7 +211,7 @@
     }
     else
     {
-        [[statusMenu itemAtIndex:ePlayPause] setTitle:@"No Internet Connection"];
+        [[statusMenu itemAtIndex:ePlayPause] setTitle:@"No internet connection"];
         [[statusMenu itemAtIndex:ePlayPause] setEnabled:NO];
         [[statusMenu itemAtIndex:eStop] setHidden:YES];
         [[statusMenu itemAtIndex:eDonate] setEnabled:NO];
@@ -222,13 +222,13 @@
 
 -(IBAction)playPause:(id)sender{
     
-    if([theAVPlayer rate] == 0.0) // Are we stopped?
+    if([theAVPlayer rate] == 1.0) // Are we playing?
     {
-        [theAVPlayer play];
+        [theAVPlayer pause];
     }
     else
     {
-        [theAVPlayer pause];
+        [theAVPlayer play];
     }
     
     streamState=eStreamBegan;
@@ -237,7 +237,7 @@
 }
 
 -(IBAction)stopPlayback:(id)sender {
-    // Stop and re-init stream
+    // Stop and re-init stream for the future
     [theAVPlayer pause];
     theAVPlayer=nil;
     [self initStream];

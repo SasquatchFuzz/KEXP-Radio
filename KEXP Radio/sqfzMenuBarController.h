@@ -42,8 +42,7 @@ typedef enum {
     eStreamBegan
 } StreamStateType;
 
-@interface sqfzMenuBarController : NSObject <NSMenuDelegate> {
-    
+@interface sqfzMenuBarController : NSObject <NSMenuDelegate> {    
     IBOutlet NSMenu *statusMenu;
     NSStatusItem *statusItem;
     AVPlayerItem *playerItem;
