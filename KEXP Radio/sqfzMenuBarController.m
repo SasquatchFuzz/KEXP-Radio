@@ -24,12 +24,13 @@
 //  MP3 (32k): http://live-mp3-32.kexp.org:8000/
 //  MP3 (128k): http://live-mp3-128.kexp.org:8000/
 //  http://kexp-mp3-2.cac.washington.edu:8000/
-
+#import <syslog.h>
 #import <sys/socket.h>
 #import <netinet/in.h>
 #import <SystemConfiguration/SystemConfiguration.h>
 #import "sqfzMenuBarController.h"
 
+#define StringFromBOOL(b) ((b) ? @"YES" : @"NO")
 
 @implementation sqfzMenuBarController
 
@@ -37,11 +38,7 @@
     
     statusItem = [[NSStatusBar systemStatusBar] statusItemWithLength:NSSquareStatusItemLength];
     
-    // init stream and UI elements in statusMenu
-    if([self hasConnectivity])
-    {
-        [self initStream];
-    }
+    // init UI elements in statusMenu
     [self updateStatusIcon];
     [self updateMenuItems];
     
@@ -59,14 +56,43 @@
         // and it needs been restored
         if(theAVPlayer==nil)
         {
-            [self initStream];
+            //[self initStream];
         }
     }
     else
     {
         // There's no connectivity now - Make sure the player's stopped/removed
         [theAVPlayer pause];
-        theAVPlayer=nil;
+        [self deinitStream];
+    }
+    
+    for ( AVMetadataItem* item in playerItem.timedMetadata ) {
+        NSString *key = [item commonKey];
+        NSString *value = [item stringValue];
+        NSLog(@"timedMetadata: key = %@, value = %@", key, value);
+    }
+    
+    NSArray *metadata = [playerItem.asset commonMetadata];
+    for ( AVMetadataItem* item in metadata ) {
+        NSString *key = [item commonKey];
+        NSString *value = [item stringValue];
+        NSLog(@"commonMetadata: key = %@, value = %@", key, value);
+    }
+    
+    for ( AVPlayerItemTrack* item in playerItem.tracks ) {
+
+        NSArray *formats = [[item assetTrack] availableMetadataFormats];
+        for ( NSString* item in formats ) {
+            NSLog(@"availableMetadataFormats: item = %@", item);
+        }
+        
+        NSArray *meta = [[item assetTrack]metadataForFormat:AVMetadataFormatiTunesMetadata];
+        for ( AVMetadataItem* item in meta ) {
+            id key = [item key];
+            NSString *value = [item stringValue];
+            NSLog(@"AVMetadataFormatiTunesMetadata: key = %@, value = %@", key, value);
+        }
+        
     }
     
     [self updateStatusIcon];
@@ -76,11 +102,23 @@
 #pragma mark Stream
 
 -(void)initStream{
-    streamState=eStreamUninitialized;
     playerItem = [AVPlayerItem playerItemWithURL:[[NSURL alloc] initWithString:@"http://live-mp3-128.kexp.org:8000/"]];
-    [playerItem addObserver:self forKeyPath:@"playbackBufferEmpty" options:NSKeyValueObservingOptionNew context:nil];
     [playerItem addObserver:self forKeyPath:@"status" options:0 context:nil];
+    [playerItem addObserver:self forKeyPath:@"playbackBufferEmpty" options:NSKeyValueObservingOptionNew context:nil];
+    [playerItem addObserver:self forKeyPath:@"playbackLikelyToKeepUp" options:NSKeyValueObservingOptionNew context:nil];
+    [playerItem addObserver:self forKeyPath:@"timedMetadata" options:NSKeyValueObservingOptionNew context:nil];
     theAVPlayer = [AVPlayer playerWithPlayerItem:self->playerItem];
+    streamState=eStreamUninitialized;
+}
+
+-(void)deinitStream{
+    [playerItem removeObserver:self forKeyPath:@"status"];
+    [playerItem removeObserver:self forKeyPath:@"playbackBufferEmpty"];
+    [playerItem removeObserver:self forKeyPath:@"playbackLikelyToKeepUp"];
+    [playerItem removeObserver:self forKeyPath:@"timedMetadata"];
+    theAVPlayer=nil;
+    streamState=eStreamInitialized;
+    
 }
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object
@@ -89,24 +127,54 @@
     {
         if(playerItem.status == AVPlayerStatusReadyToPlay)
         {
-            streamState=eStreamReady;
-            // NSLog(@"Ready");
+            [theAVPlayer play];
+            streamState=eStreamPlaying;
+            NSLog(@"AVPlayerStatusReadyToPlay");
         }
         else if(playerItem.status == AVPlayerStatusFailed) {
-            streamState=eStreamUninitialized;
-            // NSLog(@"%@" , self->playerItem.error.description);
-            // NSLog(@"PlayerStatusFailed");
+            NSLog(@"AVPlayerStatusFailed:%@" , self->playerItem.error.description);
         }
         else if(playerItem.status == AVPlayerStatusUnknown){
-            streamState=eStreamUninitialized;
-            // NSLog(@"unknown");
+            NSLog(@"AVPlayerStatusUnknown");
         }
     }
-    if (object == playerItem && [keyPath isEqualToString:@"playbackBufferEmpty"])
+    else if (object == playerItem && [keyPath isEqualToString:@"playbackBufferEmpty"])
     {
-        streamState=eStreamUninitialized;
-        // NSLog(@"playbackBufferEmpty");
+        NSLog(@"playbackBufferEmpty %@", StringFromBOOL(playerItem.playbackLikelyToKeepUp));
+        if (playerItem.playbackBufferEmpty) {
+            [theAVPlayer pause];
+            [self deinitStream];
+            [self initStream];
+        }
     }
+    else if (object == playerItem && [keyPath isEqualToString:@"playbackLikelyToKeepUp"])
+    {
+        NSLog(@"playbackLikelyToKeepUp: %@", StringFromBOOL(playerItem.playbackLikelyToKeepUp));
+    }
+    else if (object == playerItem && [keyPath isEqualToString:@"timedMetadata"])
+    {
+        for ( AVMetadataItem* item in playerItem.timedMetadata ) {
+            NSString *key = [item commonKey];
+            NSString *value = [item stringValue];
+            NSLog(@"key = %@, value = %@", key, value);
+            if([key isEqual:@"title"])
+            {
+                NSString *nowPlaying = [NSString stringWithFormat:@"Now Playing: \n%@", value];
+               nowPlaying= [nowPlaying stringByReplacingOccurrencesOfString:@" by " withString:@"\n" options:NSCaseInsensitiveSearch range:NSMakeRange(0,nowPlaying.length)];
+
+               nowPlaying= [nowPlaying stringByReplacingOccurrencesOfString:@" from " withString:@"\n" options:NSBackwardsSearch range:NSMakeRange(0,nowPlaying.length)];
+                //[[statusMenu itemAtIndex:eNowPlaying] setTitle:nowPlaying];
+                
+                
+                NSMutableAttributedString *attributed_title = [[NSMutableAttributedString alloc] initWithString:nowPlaying];
+                // finally set our attributed to the menu item
+                [[statusMenu itemAtIndex:eNowPlaying] setAttributedTitle:attributed_title];
+
+            }
+        }
+
+    }
+    
     
     [self updateStatusIcon];
     [self updateMenuItems];
@@ -169,7 +237,7 @@
 
 -(void)updateStatusIcon{
     
-    if( [theAVPlayer rate] == 1.0) // Are we playing?
+    if( theAVPlayer != nil)
     {
         [statusItem setImage:[NSImage imageNamed:@"kexpOn"]];
         [statusItem setAlternateImage:[NSImage imageNamed:@"kexpOn"]];
@@ -184,67 +252,51 @@
 
     if([self hasConnectivity])
     {
-        if(streamState==eStreamUninitialized) {
-            [[statusMenu itemAtIndex:ePlayPause] setTitle:@"Initializing stream..."];
-            [[statusMenu itemAtIndex:ePlayPause] setEnabled:NO];
-            [[statusMenu itemAtIndex:eStop] setHidden:YES];
-        }
-        else if(streamState==eStreamReady)
+        if(theAVPlayer == nil)
         {
-            [[statusMenu itemAtIndex:ePlayPause] setEnabled:YES];
-            [[statusMenu itemAtIndex:ePlayPause] setTitle:@"Play"];
+            [[statusMenu itemAtIndex:eStopPlay] setTitle:@"Play"];
+            [[statusMenu itemAtIndex:eStopPlay] setEnabled:YES];
         }
-        else if([theAVPlayer rate] == 1.0)
+        else if(streamState==eStreamInitialized)
         {
-            // We're playing...
-            [[statusMenu itemAtIndex:ePlayPause] setTitle:@"Pause"];
-            [[statusMenu itemAtIndex:eStop] setHidden:NO];
+            [[statusMenu itemAtIndex:eStopPlay] setTitle:@"Initializing stream..."];
+            [[statusMenu itemAtIndex:eStopPlay] setEnabled:NO];
         }
         else
         {
-            // The stream's already started but is paused
-            [[statusMenu itemAtIndex:ePlayPause] setEnabled:YES];
-            [[statusMenu itemAtIndex:ePlayPause] setTitle:@"Resume"];
+            // The stream's playing
+            [[statusMenu itemAtIndex:eStopPlay] setTitle:@"Stop"];
+            [[statusMenu itemAtIndex:eStopPlay] setEnabled:YES];
+
         }
         // Make sure donation option is enabled
         [[statusMenu itemAtIndex:eDonate] setEnabled:YES];
     }
     else
     {
-        [[statusMenu itemAtIndex:ePlayPause] setTitle:@"No internet connection"];
-        [[statusMenu itemAtIndex:ePlayPause] setEnabled:NO];
-        [[statusMenu itemAtIndex:eStop] setHidden:YES];
+        [[statusMenu itemAtIndex:eStopPlay] setTitle:@"No internet connection"];
+        [[statusMenu itemAtIndex:eStopPlay] setEnabled:NO];
         [[statusMenu itemAtIndex:eDonate] setEnabled:NO];
     }
 }
 
 #pragma mark User Input Handlers
 
--(IBAction)playPause:(id)sender{
+-(IBAction)stopPlay:(id)sender{
     
-    if([theAVPlayer rate] == 1.0) // Are we playing?
+    if(theAVPlayer != nil) // Are we already playing?
     {
         [theAVPlayer pause];
+        [self deinitStream];
     }
     else
     {
-        [theAVPlayer play];
+        [self initStream];
     }
     
-    streamState=eStreamBegan;
     [self updateStatusIcon];
     [self updateMenuItems];
 }
-
--(IBAction)stopPlayback:(id)sender {
-    // Stop and re-init stream for the future
-    [theAVPlayer pause];
-    theAVPlayer=nil;
-    [self initStream];
-    
-    [self updateStatusIcon];
-    [self updateMenuItems];
-};
 
 -(IBAction)donate:(id)sender{
     NSWorkspace* ws = [NSWorkspace sharedWorkspace];

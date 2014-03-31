@@ -26,8 +26,8 @@
 #import <AVFoundation/AVFoundation.h>
 
 typedef enum {
-    ePlayPause=0,
-    eStop,
+    eStopPlay=0,
+    eNowPlaying,
     sSep1,
     eDonate,
     eSep2,
@@ -38,8 +38,8 @@ typedef enum {
 
 typedef enum {
     eStreamUninitialized=0,
-    eStreamReady,
-    eStreamBegan
+    eStreamInitialized=0,
+    eStreamPlaying,
 } StreamStateType;
 
 @interface sqfzMenuBarController : NSObject <NSMenuDelegate> {    
@@ -51,12 +51,12 @@ typedef enum {
 }
 
 -(void)initStream;
+-(void)deinitStream;
 -(BOOL)hasConnectivity;
 -(void)updateStatusIcon;
 -(void)updateMenuItems;
 
--(IBAction)playPause:(id)sender;
--(IBAction)stopPlayback:(id)sender;
+-(IBAction)stopPlay:(id)sender;
 -(IBAction)donate:(id)sender;
 -(IBAction)preferences:(id)sender;
 @end
