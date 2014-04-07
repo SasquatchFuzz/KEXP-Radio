@@ -108,7 +108,7 @@
     [playerItem addObserver:self forKeyPath:@"playbackLikelyToKeepUp" options:NSKeyValueObservingOptionNew context:nil];
     [playerItem addObserver:self forKeyPath:@"timedMetadata" options:NSKeyValueObservingOptionNew context:nil];
     theAVPlayer = [AVPlayer playerWithPlayerItem:self->playerItem];
-    streamState=eStreamUninitialized;
+    streamState=eStreamInitialized;
 }
 
 -(void)deinitStream{
@@ -117,8 +117,8 @@
     [playerItem removeObserver:self forKeyPath:@"playbackLikelyToKeepUp"];
     [playerItem removeObserver:self forKeyPath:@"timedMetadata"];
     theAVPlayer=nil;
-    streamState=eStreamInitialized;
-    
+    playerItem=nil;
+    streamState=eStreamUninitialized;
 }
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object
@@ -133,6 +133,12 @@
         }
         else if(playerItem.status == AVPlayerStatusFailed) {
             NSLog(@"AVPlayerStatusFailed:%@" , self->playerItem.error.description);
+            [self deinitStream];
+            
+            //Let's diplay this error for now
+            NSAlert *alert = [[NSAlert alloc] init];
+            [alert setMessageText:self->playerItem.error.description];
+            [alert runModal];
         }
         else if(playerItem.status == AVPlayerStatusUnknown){
             NSLog(@"AVPlayerStatusUnknown");
@@ -153,28 +159,25 @@
     }
     else if (object == playerItem && [keyPath isEqualToString:@"timedMetadata"])
     {
-        for ( AVMetadataItem* item in playerItem.timedMetadata ) {
+        for ( AVMetadataItem* item in playerItem.timedMetadata )
+        {
             NSString *key = [item commonKey];
             NSString *value = [item stringValue];
             NSLog(@"key = %@, value = %@", key, value);
             if([key isEqual:@"title"])
             {
-                NSString *nowPlaying = [NSString stringWithFormat:@"Now Playing: \n%@", value];
-               nowPlaying= [nowPlaying stringByReplacingOccurrencesOfString:@" by " withString:@"\n" options:NSCaseInsensitiveSearch range:NSMakeRange(0,nowPlaying.length)];
+                NSFont* font = [NSFont menuFontOfSize:14] ;
+                NSDictionary* fontAttribute = [NSDictionary dictionaryWithObjectsAndKeys:font, NSFontAttributeName, nil] ;
+                NSString *nowPlaying = [NSString stringWithFormat:@"Now Playing: \n   %@", value];
 
-               nowPlaying= [nowPlaying stringByReplacingOccurrencesOfString:@" from " withString:@"\n" options:NSBackwardsSearch range:NSMakeRange(0,nowPlaying.length)];
-                //[[statusMenu itemAtIndex:eNowPlaying] setTitle:nowPlaying];
-                
-                
-                NSMutableAttributedString *attributed_title = [[NSMutableAttributedString alloc] initWithString:nowPlaying];
-                // finally set our attributed to the menu item
-                [[statusMenu itemAtIndex:eNowPlaying] setAttributedTitle:attributed_title];
-
+                nowPlaying= [nowPlaying stringByReplacingOccurrencesOfString:@" by " withString:@"\n   " options:NSCaseInsensitiveSearch range:NSMakeRange(0,nowPlaying.length)];
+                nowPlaying= [nowPlaying stringByReplacingOccurrencesOfString:@" from " withString:@"\n   " options:NSBackwardsSearch range:NSMakeRange(0,nowPlaying.length)];
+                NSMutableAttributedString *title = [[NSMutableAttributedString alloc] initWithString:nowPlaying  attributes:fontAttribute];
+                [[statusMenu itemAtIndex:eNowPlaying] setAttributedTitle:title];
             }
         }
 
     }
-    
     
     [self updateStatusIcon];
     [self updateMenuItems];
