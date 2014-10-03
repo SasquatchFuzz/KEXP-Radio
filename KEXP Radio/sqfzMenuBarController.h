@@ -52,6 +52,7 @@ typedef enum {
 
 -(void)initStream;
 -(void)deinitStream;
+-(void)receiveSleepNote:(NSNotification*)note;
 -(BOOL)hasConnectivity;
 -(void)updateStatusIcon;
 -(void)updateMenuItems;

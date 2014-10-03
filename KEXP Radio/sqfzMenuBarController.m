@@ -44,6 +44,14 @@
     
     [statusItem setMenu:statusMenu];
     [statusItem setHighlightMode:YES];
+    
+    [[[NSWorkspace sharedWorkspace] notificationCenter] addObserver: self
+                                                           selector: @selector(receiveSleepNote:)
+                                                               name: NSWorkspaceWillSleepNotification object: NULL];
+
+    [[[NSWorkspace sharedWorkspace] notificationCenter] addObserver: self
+                                                           selector: @selector(receiveWakeNote:)
+                                                               name: NSWorkspaceDidWakeNotification object: NULL];
 }
 
 - (void)menuNeedsUpdate:(NSMenu *)menu {
@@ -183,6 +191,27 @@
     [self updateMenuItems];
 }
 
+#pragma mark Sleep
+
+-(void)receiveSleepNote:(NSNotification*)note
+{
+    NSLog(@"receiveSleepNote: %@", [note name]);
+    if(theAVPlayer != nil) // Are we already playing?
+    {
+        [theAVPlayer pause];
+        [self deinitStream];
+    }
+    [self updateStatusIcon];
+    [self updateMenuItems];
+}
+
+-(void)receiveWakeNote:(NSNotification*)note
+{
+    NSLog(@"receiveWakeNote: %@", [note name]);
+    [self updateStatusIcon];
+    [self updateMenuItems];
+}
+
 #pragma mark Connectivity
 
 -(BOOL)hasConnectivity {
@@ -259,11 +288,15 @@
         {
             [[statusMenu itemAtIndex:eStopPlay] setTitle:@"Play"];
             [[statusMenu itemAtIndex:eStopPlay] setEnabled:YES];
+            // better to hide the item entirely unless it's playing, but until then...
+            [[statusMenu itemAtIndex:eNowPlaying] setAttributedTitle:[[NSMutableAttributedString alloc] initWithString:@" "]];
         }
         else if(streamState==eStreamInitialized)
         {
             [[statusMenu itemAtIndex:eStopPlay] setTitle:@"Initializing stream..."];
             [[statusMenu itemAtIndex:eStopPlay] setEnabled:NO];
+            // better to hide the item entirely unless it's playing, but until then...
+            [[statusMenu itemAtIndex:eNowPlaying] setAttributedTitle:[[NSMutableAttributedString alloc] initWithString:@" "]];
         }
         else
         {
