@@ -288,21 +288,20 @@
         {
             [[statusMenu itemAtIndex:eStopPlay] setTitle:@"Play"];
             [[statusMenu itemAtIndex:eStopPlay] setEnabled:YES];
-            // better to hide the item entirely unless it's playing, but until then...
-            [[statusMenu itemAtIndex:eNowPlaying] setAttributedTitle:[[NSMutableAttributedString alloc] initWithString:@" "]];
+            [[statusMenu itemAtIndex:eNowPlaying] setHidden:true];
         }
         else if(streamState==eStreamInitialized)
         {
             [[statusMenu itemAtIndex:eStopPlay] setTitle:@"Initializing stream..."];
             [[statusMenu itemAtIndex:eStopPlay] setEnabled:NO];
-            // better to hide the item entirely unless it's playing, but until then...
-            [[statusMenu itemAtIndex:eNowPlaying] setAttributedTitle:[[NSMutableAttributedString alloc] initWithString:@" "]];
+            [[statusMenu itemAtIndex:eNowPlaying] setHidden:true];
         }
         else
         {
             // The stream's playing
             [[statusMenu itemAtIndex:eStopPlay] setTitle:@"Stop"];
             [[statusMenu itemAtIndex:eStopPlay] setEnabled:YES];
+            [[statusMenu itemAtIndex:eNowPlaying] setHidden:false];
 
         }
         // Make sure donation option is enabled
