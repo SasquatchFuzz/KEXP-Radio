@@ -275,8 +275,17 @@
         [statusItem setAlternateImage:[NSImage imageNamed:@"kexpOn"]];
     }
     else {
-        [statusItem setImage:[NSImage imageNamed:@"kexpOff"]];
-        [statusItem setAlternateImage:[NSImage imageNamed:@"kexpOff"]];
+        //NSString *osxMode = [[NSUserDefaults standardUserDefaults] stringForKey:@"AppleInterfaceStyle"];
+        if ([[[NSUserDefaults standardUserDefaults] stringForKey:@"AppleInterfaceStyle"] isEqual: @"Dark"])
+        {
+            [statusItem setImage:[NSImage imageNamed:@"kexpOffDark"]];
+            [statusItem setAlternateImage:[NSImage imageNamed:@"kexpOffDark"]];
+        }
+        else
+        {
+            [statusItem setImage:[NSImage imageNamed:@"kexpOff"]];
+            [statusItem setAlternateImage:[NSImage imageNamed:@"kexpOff"]];
+        }
     }
 }
 
