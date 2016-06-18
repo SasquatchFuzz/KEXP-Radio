@@ -45,6 +45,7 @@ typedef enum {
 @interface sqfzMenuBarController : NSObject <NSMenuDelegate> {    
     IBOutlet NSMenu *statusMenu;
     NSStatusItem *statusItem;
+    NSURL * kexpStreamURL;
     AVPlayerItem *playerItem;
     AVPlayer *theAVPlayer;
     StreamStateType streamState;

@@ -110,8 +110,9 @@
 #pragma mark Stream
 
 -(void)initStream{
-    playerItem = [AVPlayerItem playerItemWithURL:[[NSURL alloc] initWithString:@"http://live-mp3-128.kexp.org:8000/"]];
-    [playerItem addObserver:self forKeyPath:@"status" options:0 context:nil];
+    kexpStreamURL = [NSURL URLWithString:@"http://live-mp3-128.kexp.org:80/kexp128.mp3"];
+    playerItem = [AVPlayerItem playerItemWithURL:kexpStreamURL];
+    [playerItem addObserver:self forKeyPath:@"status" options:NSKeyValueObservingOptionNew context:nil];
     [playerItem addObserver:self forKeyPath:@"playbackBufferEmpty" options:NSKeyValueObservingOptionNew context:nil];
     [playerItem addObserver:self forKeyPath:@"playbackLikelyToKeepUp" options:NSKeyValueObservingOptionNew context:nil];
     [playerItem addObserver:self forKeyPath:@"timedMetadata" options:NSKeyValueObservingOptionNew context:nil];
@@ -126,6 +127,7 @@
     [playerItem removeObserver:self forKeyPath:@"timedMetadata"];
     theAVPlayer=nil;
     playerItem=nil;
+    kexpStreamURL=nil;
     streamState=eStreamUninitialized;
 }
 
@@ -137,24 +139,23 @@
         {
             [theAVPlayer play];
             streamState=eStreamPlaying;
-            NSLog(@"AVPlayerStatusReadyToPlay");
+//            NSLog(@"AVPlayerStatusReadyToPlay");
         }
         else if(playerItem.status == AVPlayerStatusFailed) {
-            NSLog(@"AVPlayerStatusFailed:%@" , self->playerItem.error.description);
-            [self deinitStream];
+//            NSLog(@"AVPlayerStatusFailed:%@" , self->playerItem.error.description);
             
-            //Let's diplay this error for now
             NSAlert *alert = [[NSAlert alloc] init];
             [alert setMessageText:self->playerItem.error.description];
             [alert runModal];
+            [self deinitStream];
         }
         else if(playerItem.status == AVPlayerStatusUnknown){
-            NSLog(@"AVPlayerStatusUnknown");
+//            NSLog(@"AVPlayerStatusUnknown");
         }
     }
     else if (object == playerItem && [keyPath isEqualToString:@"playbackBufferEmpty"])
     {
-        NSLog(@"playbackBufferEmpty %@", StringFromBOOL(playerItem.playbackLikelyToKeepUp));
+//        NSLog(@"playbackBufferEmpty %@", StringFromBOOL(playerItem.playbackLikelyToKeepUp));
         if (playerItem.playbackBufferEmpty) {
             [theAVPlayer pause];
             [self deinitStream];
@@ -163,7 +164,7 @@
     }
     else if (object == playerItem && [keyPath isEqualToString:@"playbackLikelyToKeepUp"])
     {
-        NSLog(@"playbackLikelyToKeepUp: %@", StringFromBOOL(playerItem.playbackLikelyToKeepUp));
+//        NSLog(@"playbackLikelyToKeepUp: %@", StringFromBOOL(playerItem.playbackLikelyToKeepUp));
     }
     else if (object == playerItem && [keyPath isEqualToString:@"timedMetadata"])
     {
@@ -171,7 +172,7 @@
         {
             NSString *key = [item commonKey];
             NSString *value = [item stringValue];
-            NSLog(@"key = %@, value = %@", key, value);
+//            NSLog(@"key = %@, value = %@", key, value);
             if([key isEqual:@"title"])
             {
                 NSFont* font = [NSFont menuFontOfSize:14] ;
